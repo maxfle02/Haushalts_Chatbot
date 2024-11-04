@@ -70,8 +70,18 @@ with st.sidebar:
     )
 
 
-    with st.expander(f"📚 Hochgeladene Bedienungsanleitungen ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
-        st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
+    def get_loaded_documents():
+        try:
+            with open("loaded_documents.txt", "r") as file:
+                document_names = [line.strip() for line in file.readlines()]
+        except FileNotFoundError:
+            document_names = []  # Falls die Datei noch nicht existiert
+
+        return document_names
+
+    # Verwendung in der Streamlit-Oberfläche
+    with st.expander(f"📚 Hochgeladene Bedienungsanleitungen ({len(get_loaded_documents())})"):
+        st.write(get_loaded_documents())
 
     
 
