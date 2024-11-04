@@ -38,8 +38,8 @@ def load_doc_to_db():
         for doc_file in st.session_state.rag_docs:
             if doc_file.name not in st.session_state.rag_sources:
                 if len(st.session_state.rag_sources) < DB_DOCS_LIMIT:
-                    os.makedirs("source_files", exist_ok=True)
-                    file_path = f"./source_files/{doc_file.name}"
+                    os.makedirs("data", exist_ok=True)
+                    file_path = f"./data/{doc_file.name}"
                     with open(file_path, "wb") as file:
                         file.write(doc_file.read())
 

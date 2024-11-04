@@ -54,14 +54,8 @@ with st.sidebar:
     cols0 = st.columns(2)
     with cols0[0]:
         is_vector_db_loaded = ("vector_db" in st.session_state and st.session_state.vector_db is not None)
-        st.toggle(
-            "Use RAG", 
-            value=is_vector_db_loaded, 
-            key="use_rag", 
-            disabled=not is_vector_db_loaded,
-        )
-
-    with cols0[1]:
+ 
+    with cols0[0]:
         st.button("Clear Chat", on_click=lambda: st.session_state.messages.clear(), type="primary")
 
     st.header("RAG Sources:")
