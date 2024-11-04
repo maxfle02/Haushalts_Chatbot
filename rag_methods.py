@@ -124,16 +124,16 @@ def split_and_load_docs(docs):
 def get_context_retriever_chain(vector_db, llm):
     if vector_db is None:
         st.warning("Vector database ist nicht initialisiert.")
-        return None  # Oder beende die Funktion ohne einen Retriever zu erstellen
+        return None
 
     retriever = vector_db.as_retriever()
     prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder(variable_name="messages"),
         ("user", "{input}"),
-        ("user", "Given the above conversation, generate a search query to look up information relevant to the conversation, focusing on the most recent messages."),
+        ("user", "Using only the above context, generate a search query focusing on the most relevant recent information."),
     ])
     retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
-
+    
     return retriever_chain
 
 
@@ -142,10 +142,8 @@ def get_conversational_rag_chain(llm):
 
     prompt = ChatPromptTemplate.from_messages([
         ("system",
-        """    Du bist ein Haushaltsassistent-Bot und hilfst bei Fragen rund um die Bedienung von Haushaltsgeräten. 
-        Deine Hauptaufgabe besteht darin, Nutzern klare und praktische Anweisungen zu geben, die leicht verständlich und sofort umsetzbar sind. 
-        Die häufigsten Anfragen betreffen die Bedienung von Waschmaschinen, Geschirrspülern, Kühlschränken, Mikrowellen und anderen technischen Geräten im Haushalt.
-            {context}"""),
+        """Du bist ein Haushaltsassistent-Bot und hilfst nur mit den Informationen, die in der Vector-Datenbank gefunden wurden.
+        {context}"""),
         MessagesPlaceholder(variable_name="messages"),
         ("user", "{input}"),
     ])
@@ -157,9 +155,8 @@ def get_conversational_rag_chain(llm):
 def stream_llm_rag_response(llm_stream, messages):
     if st.session_state.vector_db is None:
         st.warning("Bitte lade zuerst ein Dokument hoch, um die RAG-Funktion nutzen zu können.")
-        return  # Beende die Funktion, wenn vector_db nicht vorhanden ist
+        return
     
-    # Führe RAG nur aus, wenn vector_db initialisiert ist
     conversation_rag_chain = get_conversational_rag_chain(llm_stream)
     response_message = "*(RAG Response)*\n"
     
@@ -168,5 +165,6 @@ def stream_llm_rag_response(llm_stream, messages):
         yield chunk
 
     st.session_state.messages.append({"role": "assistant", "content": response_message})
+
 
 
