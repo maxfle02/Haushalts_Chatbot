@@ -112,19 +112,25 @@ def split_and_load_docs(docs):
 
     document_chunks = text_splitter.split_documents(docs)
 
-    if "vector_db" not in st.session_state:
+    # Überprüfe, ob vector_db existiert; wenn nicht, initialisiere es
+    if "vector_db" not in st.session_state or st.session_state.vector_db is None:
         st.session_state.vector_db = initialize_vector_db(docs)
     else:
         st.session_state.vector_db.add_documents(document_chunks)
 
+
 # --- Retrieval Augmented Generation (RAG) Phase ---
 
 def get_context_retriever_chain(vector_db, llm):
+    if vector_db is None:
+        st.warning("Vector database ist nicht initialisiert.")
+        return None  # Oder beende die Funktion ohne einen Retriever zu erstellen
+
     retriever = vector_db.as_retriever()
     prompt = ChatPromptTemplate.from_messages([
         MessagesPlaceholder(variable_name="messages"),
         ("user", "{input}"),
-        ("user", "Given the above conversation, generate a search query to look up in order to get inforamtion relevant to the conversation, focusing on the most recent messages."),
+        ("user", "Given the above conversation, generate a search query to look up information relevant to the conversation, focusing on the most recent messages."),
     ])
     retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
 
@@ -149,11 +155,18 @@ def get_conversational_rag_chain(llm):
 
 
 def stream_llm_rag_response(llm_stream, messages):
+    if st.session_state.vector_db is None:
+        st.warning("Bitte lade zuerst ein Dokument hoch, um die RAG-Funktion nutzen zu können.")
+        return  # Beende die Funktion, wenn vector_db nicht vorhanden ist
+    
+    # Führe RAG nur aus, wenn vector_db initialisiert ist
     conversation_rag_chain = get_conversational_rag_chain(llm_stream)
     response_message = "*(RAG Response)*\n"
+    
     for chunk in conversation_rag_chain.pick("answer").stream({"messages": messages[:-1], "input": messages[-1].content}):
         response_message += chunk
         yield chunk
 
     st.session_state.messages.append({"role": "assistant", "content": response_message})
+
 

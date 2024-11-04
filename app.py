@@ -44,6 +44,9 @@ if "messages" not in st.session_state:
         {"role": "user", "content": "Hallo"},
         {"role": "assistant", "content": "Hallo wie kann ich dir helfen? 🤖"},
 ]
+if "vector_db" not in st.session_state:
+    st.session_state.vector_db = None
+
 
 
 # --- Main Content ---
@@ -52,14 +55,6 @@ if "messages" not in st.session_state:
 with st.sidebar:
 
     cols0 = st.columns(2)
-    with cols0[0]:
-        is_vector_db_loaded = ("vector_db" in st.session_state and st.session_state.vector_db is not None)
-        st.toggle(
-            "Use RAG", 
-            value=is_vector_db_loaded, 
-            key="use_rag", 
-            disabled=not is_vector_db_loaded,
-        )
 
     with cols0[1]:
         st.button("Clear Chat", on_click=lambda: st.session_state.messages.clear(), type="primary")
@@ -115,7 +110,8 @@ if prompt := st.chat_input("Your message"):
 
         messages = [HumanMessage(content=m["content"]) if m["role"] == "user" else AIMessage(content=m["content"]) for m in st.session_state.messages]
 
-        if not st.session_state.use_rag:
-            st.write_stream(stream_llm_response(llm_stream, messages))
-        else:
+        if st.session_state.vector_db is not None:
             st.write_stream(stream_llm_rag_response(llm_stream, messages))
+        else:
+            st.warning("Bitte lade zuerst ein Dokument hoch, um die RAG-Funktion nutzen zu können.")
+
