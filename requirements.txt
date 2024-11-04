@@ -1,0 +1,12 @@
+python-dotenv
+langchain-core
+langchain-community
+langchain-openai
+langchain-anthropic
+chromadb
+streamlit
+openai
+pydantic
+uuid
+pysqlite3-binary
+langfuse
