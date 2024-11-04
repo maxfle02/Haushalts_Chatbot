@@ -85,6 +85,7 @@ def load_doc_to_db():
             st.toast(f"Document *{str([doc_file.name for doc_file in st.session_state.rag_docs])[1:-1]}* loaded successfully.", icon="✅")
 
 
+
 def initialize_vector_db(docs):
     vector_db = Chroma.from_documents(
         persist_directory="data",

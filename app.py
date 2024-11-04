@@ -54,8 +54,14 @@ with st.sidebar:
     cols0 = st.columns(2)
     with cols0[0]:
         is_vector_db_loaded = ("vector_db" in st.session_state and st.session_state.vector_db is not None)
- 
-    with cols0[0]:
+        st.toggle(
+            "Use RAG", 
+            value=is_vector_db_loaded, 
+            key="use_rag", 
+            disabled=not is_vector_db_loaded,
+        )
+
+    with cols0[1]:
         st.button("Clear Chat", on_click=lambda: st.session_state.messages.clear(), type="primary")
 
     st.header("RAG Sources:")
@@ -75,11 +81,10 @@ with st.sidebar:
             with open("loaded_documents.txt", "r") as file:
                 document_names = [line.strip() for line in file.readlines()]
         except FileNotFoundError:
-            document_names = []  # Falls die Datei noch nicht existiert
+            document_names = []
 
         return document_names
 
-    # Verwendung in der Streamlit-Oberfläche
     with st.expander(f"📚 Hochgeladene Bedienungsanleitungen ({len(get_loaded_documents())})"):
         st.write(get_loaded_documents())
 
