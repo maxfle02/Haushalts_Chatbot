@@ -41,15 +41,14 @@ if "rag_sources" not in st.session_state:
 
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "user", "content": "Hello"},
-        {"role": "assistant", "content": "Hi there! How can I assist you today?"}
+        {"role": "user", "content": "Hallo"},
+        {"role": "assistant", "content": "Hallo wie kann ich dir helfen? 🤖"},
 ]
 
 
 # --- Main Content ---
 # Checking if the user has introduced the OpenAI API Key, if not, a warning is displayed
 
-# Sidebar
 with st.sidebar:
 
     cols0 = st.columns(2)
@@ -69,7 +68,7 @@ with st.sidebar:
         
     # File upload input for RAG with documents
     st.file_uploader(
-        "📄 Upload a document", 
+        "📄 Lade hier deine Bedienungsanleitungen hoch", 
         type=["pdf"],
         accept_multiple_files=True,
         on_change=load_doc_to_db,
@@ -77,7 +76,7 @@ with st.sidebar:
     )
 
 
-    with st.expander(f"📚 Documents in DB ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
+    with st.expander(f"📚 Hochgeladene Bedienungsanleitungen ({0 if not is_vector_db_loaded else len(st.session_state.rag_sources)})"):
         st.write([] if not is_vector_db_loaded else [source for source in st.session_state.rag_sources])
 
     
