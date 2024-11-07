@@ -19,6 +19,7 @@ dotenv.load_dotenv()
 # Limit the number of documents to be loaded from the database
 DB_DOCS_LIMIT = 10
 
+
 # Function to stream the response from the LLM
 def stream_llm_response(llm_stream, messages):
     response_message = ""
@@ -29,23 +30,29 @@ def stream_llm_response(llm_stream, messages):
 
     st.session_state.messages.append({"role": "assistant", "content": response_message})
 
+
 # --- Indexing Phase ---
+
 
 def load_doc_to_db():
     # Überprüfe, ob die `loaded_documents.txt` Datei existiert und lade die vorhandenen Namen
     try:
         with open("loaded_documents.txt", "r") as file:
-            loaded_documents = {line.strip() for line in file.readlines()}  # Verwende ein Set für schnellere Suche
+            loaded_documents = {
+                line.strip() for line in file.readlines()
+            }  # Verwende ein Set für schnellere Suche
     except FileNotFoundError:
         loaded_documents = set()  # Falls die Datei nicht existiert
 
     # Verwende Loader je nach Dokumenttyp
     if "rag_docs" in st.session_state and st.session_state.rag_docs:
-        docs = [] 
+        docs = []
         for doc_file in st.session_state.rag_docs:
             # Prüfe, ob der Dateiname bereits in der `loaded_documents.txt` Datei steht
             if doc_file.name in loaded_documents:
-                st.warning(f"The document '{doc_file.name}' already exists in the database and will not be reloaded.")
+                st.warning(
+                    f"The document '{doc_file.name}' already exists in the database and will not be reloaded."
+                )
                 continue  # Überspringe dieses Dokument
 
             # Füge Dokument zur Datenbank hinzu, falls es noch nicht vorhanden ist
@@ -71,9 +78,11 @@ def load_doc_to_db():
                             log_file.write(f"{doc_file.name}\n")
 
                     except Exception as e:
-                        st.toast(f"Error loading document {doc_file.name}: {e}", icon="⚠️")
+                        st.toast(
+                            f"Error loading document {doc_file.name}: {e}", icon="⚠️"
+                        )
                         print(f"Error loading document {doc_file.name}: {e}")
-                    
+
                     finally:
                         os.remove(file_path)
 
@@ -82,8 +91,10 @@ def load_doc_to_db():
 
         if docs:
             split_and_load_docs(docs)
-            st.toast(f"Document *{str([doc_file.name for doc_file in st.session_state.rag_docs])[1:-1]}* loaded successfully.", icon="✅")
-
+            st.toast(
+                f"Document *{str([doc_file.name for doc_file in st.session_state.rag_docs])[1:-1]}* loaded successfully.",
+                icon="✅",
+            )
 
 
 def initialize_vector_db(docs):
@@ -91,18 +102,21 @@ def initialize_vector_db(docs):
         persist_directory="data",
         documents=docs,
         embedding=OpenAIEmbeddings(),
-        collection_name=f"{str(time()).replace('.', '')[:14]}_" + st.session_state['session_id'],
+        collection_name="global_collection",
     )
 
     # We need to manage the number of collections that we have in memory, we will keep the last 20
     chroma_client = vector_db._client
-    collection_names = sorted([collection.name for collection in chroma_client.list_collections()])
+    collection_names = sorted(
+        [collection.name for collection in chroma_client.list_collections()]
+    )
     print("Number of collections:", len(collection_names))
     while len(collection_names) > 20:
         chroma_client.delete_collection(collection_names[0])
         collection_names.pop(0)
 
     return vector_db
+
 
 def split_and_load_docs(docs):
     text_splitter = RecursiveCharacterTextSplitter(
@@ -121,50 +135,75 @@ def split_and_load_docs(docs):
 
 # --- Retrieval Augmented Generation (RAG) Phase ---
 
+
 def get_context_retriever_chain(vector_db, llm):
     if vector_db is None:
         st.warning("Vector database ist nicht initialisiert.")
         return None
 
     retriever = vector_db.as_retriever()
-    prompt = ChatPromptTemplate.from_messages([
-        MessagesPlaceholder(variable_name="messages"),
-        ("user", "{input}"),
-        ("user", "Using only the above context, generate a search query focusing on the most relevant recent information."),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            MessagesPlaceholder(variable_name="messages"),
+            ("user", "{input}"),
+            (
+                "user",
+                "Using only the above context, generate a search query focusing on the most relevant recent information.",
+            ),
+        ]
+    )
     retriever_chain = create_history_aware_retriever(llm, retriever, prompt)
-    
+
     return retriever_chain
 
 
-def get_conversational_rag_chain(llm):
+def get_conversational_rag_chain(llm, technic_level):
+
+    # Mapping für das Techniklevel
+    technic_level_mapping = {
+        "low": "in einfacher Sprache mit detaillierten Erklärungen",  # Für Benutzer mit wenig technischem Wissen
+        "medium": "auf normalem Niveau",  # Für Benutzer mit grundlegenden Kenntnissen
+        "high": "auf Expertenniveau mit prägnanten Erklärungen",  # Für Experten
+    }
+    explanation_level = technic_level_mapping.get(technic_level)
+
     retriever_chain = get_context_retriever_chain(st.session_state.vector_db, llm)
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system",
-        """Du bist ein Haushaltsassistent-Bot und hilfst nur mit den Informationen, die in der Vector-Datenbank gefunden wurden.
-        {context}"""),
-        MessagesPlaceholder(variable_name="messages"),
-        ("user", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                f"""Du bist ein Haushaltsassistent-Bot und hilfst nur mit den Informationen, die in der Vector-Datenbank gefunden wurden. 
+        Wenn es mehrere Anleitungen zu einem Gerätetyp gibt oder das Gerät nicht klar ist, frage den Benutzer zuerst nach dem Produkttyp (z.B. Fernseher, Spülmaschine, Waschmaschine usw.), 
+        dann nach dem Hersteller und schließlich nach dem genauen Modell. Sage sonst, von welchen Hersteller und Gerätnamen du Informationen hast. 
+        Erkläre die Antwort {explanation_level}.
+        {{context}}""",
+            ),
+            MessagesPlaceholder(variable_name="messages"),
+            ("user", "{input}"),
+        ]
+    )
+
+    print(prompt)
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
 
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)
 
 
-def stream_llm_rag_response(llm_stream, messages):
+def stream_llm_rag_response(llm_stream, messages, technic_level):
     if st.session_state.vector_db is None:
-        st.warning("Bitte lade zuerst ein Dokument hoch, um die RAG-Funktion nutzen zu können.")
+        st.warning(
+            "Bitte lade zuerst ein Dokument hoch, um die RAG-Funktion nutzen zu können."
+        )
         return
-    
-    conversation_rag_chain = get_conversational_rag_chain(llm_stream)
+
+    conversation_rag_chain = get_conversational_rag_chain(llm_stream, technic_level)
     response_message = "*(RAG Response)*\n"
-    
-    for chunk in conversation_rag_chain.pick("answer").stream({"messages": messages[:-1], "input": messages[-1].content}):
+
+    for chunk in conversation_rag_chain.pick("answer").stream(
+        {"messages": messages[:-1], "input": messages[-1].content}
+    ):
         response_message += chunk
         yield chunk
 
     st.session_state.messages.append({"role": "assistant", "content": response_message})
-
-
-
