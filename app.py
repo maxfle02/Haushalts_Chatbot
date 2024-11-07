@@ -54,7 +54,7 @@ with st.sidebar:
 
     cols0 = st.columns(2)
 
-    with cols0[1]:
+    with cols0[0]:
         st.button(
             "Clear Chat",
             on_click=lambda: st.session_state.messages.clear(),
