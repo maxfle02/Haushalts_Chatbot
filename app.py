@@ -96,6 +96,9 @@ with st.sidebar:
 
 
 # Main chat app
+
+st.header("TechNick – der ChatBot für jeden Haushalt🤖")
+
 model_provider = "openai"
 if model_provider == "openai":
     llm_stream = ChatOpenAI(
