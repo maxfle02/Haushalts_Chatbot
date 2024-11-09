@@ -99,7 +99,7 @@ def load_doc_to_db():
 
 def initialize_vector_db(docs):
     vector_db = Chroma.from_documents(
-        persist_directory="data",
+        persist_directory="chroma_db",
         documents=docs,
         embedding=OpenAIEmbeddings(),
         collection_name="global_collection",
@@ -141,7 +141,11 @@ def get_context_retriever_chain(vector_db, llm):
         st.warning("Vector database ist nicht initialisiert.")
         return None
 
-    retriever = vector_db.as_retriever()
+    similarity_threshold = 0.8
+    retriever = vector_db.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={"score_threshold": similarity_threshold},
+    )
     prompt = ChatPromptTemplate.from_messages(
         [
             MessagesPlaceholder(variable_name="messages"),
