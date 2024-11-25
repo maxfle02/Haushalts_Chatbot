@@ -97,23 +97,38 @@ def load_doc_to_db():
             )
 
 
-def initialize_vector_db(docs):
-    vector_db = Chroma.from_documents(
-        persist_directory="chroma_db",
-        documents=docs,
-        embedding=OpenAIEmbeddings(),
-        collection_name="global_collection",
-    )
+def initialize_vector_db(docs=None):
+    persist_dir = "chroma_db"
+    embedding = OpenAIEmbeddings()
 
-    # We need to manage the number of collections that we have in memory, we will keep the last 20
-    chroma_client = vector_db._client
-    collection_names = sorted(
-        [collection.name for collection in chroma_client.list_collections()]
-    )
-    print("Number of collections:", len(collection_names))
-    while len(collection_names) > 20:
-        chroma_client.delete_collection(collection_names[0])
-        collection_names.pop(0)
+    # Prüfen, ob das Verzeichnis existiert
+    if os.path.exists(persist_dir):
+        try:
+            # Bestehende Datenbank laden
+            vector_db = Chroma(
+                persist_directory=persist_dir,
+                embedding_function=embedding,
+            )
+            print("Bestehende Vector DB geladen.")
+        except Exception as e:
+            raise RuntimeError(f"Fehler beim Laden der Vector DB: {e}")
+    else:
+        if docs is None:
+            raise ValueError(
+                "Keine Dokumente übergeben und keine bestehende Datenbank gefunden."
+            )
+        try:
+            # Neue Datenbank initialisieren
+            vector_db = Chroma.from_documents(
+                persist_directory=persist_dir,
+                documents=docs,
+                embedding=embedding,
+                collection_name="global_collection",
+            )
+            vector_db.persist()
+            print("Neue Vector DB initialisiert.")
+        except Exception as e:
+            raise RuntimeError(f"Fehler bei der Initialisierung der Vector DB: {e}")
 
     return vector_db
 
@@ -188,7 +203,6 @@ def get_conversational_rag_chain(llm, technic_level):
         ]
     )
 
-    print(prompt)
     stuff_documents_chain = create_stuff_documents_chain(llm, prompt)
 
     return create_retrieval_chain(retriever_chain, stuff_documents_chain)

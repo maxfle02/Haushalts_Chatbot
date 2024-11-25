@@ -18,7 +18,12 @@ else:
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, AIMessage
 
-from rag_methods import load_doc_to_db, stream_llm_response, stream_llm_rag_response
+from rag_methods import (
+    load_doc_to_db,
+    stream_llm_response,
+    stream_llm_rag_response,
+    initialize_vector_db,
+)
 
 api_key = os.getenv("OPENAI_API_KEY")
 
@@ -41,7 +46,12 @@ if "messages" not in st.session_state:
         {"role": "assistant", "content": "Hallo wie kann ich dir helfen? 🤖"},
     ]
 if "vector_db" not in st.session_state:
-    st.session_state.vector_db = None
+    try:
+        st.session_state.vector_db = initialize_vector_db()
+        print("Vector DB erfolgreich initialisiert oder geladen.")
+    except Exception as e:
+        st.session_state.vector_db = None
+        st.error(f"Fehler bei der Initialisierung der Vector DB: {e}")
 
 if "technic_level" not in st.session_state:
     st.session_state.technic_level = "low"
@@ -104,7 +114,7 @@ if model_provider == "openai":
     llm_stream = ChatOpenAI(
         api_key=api_key,
         model_name=MODEL,
-        temperature=0.3,
+        temperature=0,
         streaming=True,
     )
 
