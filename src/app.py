@@ -92,7 +92,7 @@ with st.sidebar:
 
     def get_loaded_documents():
         try:
-            with open("../loaded_documents.txt", "r") as file:
+            with open("loaded_documents.txt", "r") as file:
                 document_names = [line.strip() for line in file.readlines()]
         except FileNotFoundError:
             document_names = []

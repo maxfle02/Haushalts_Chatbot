@@ -1,4 +1,3 @@
-
 version: "3.8"
 services:
   chatbot:
@@ -7,6 +6,8 @@ services:
       - "8501:8501"
     volumes:
       - chatbot_data:/app/data
+    command: >
+      sh -c "python src/test.py && streamlit run src/app.py --server.port=8501 --server.address=0.0.0.0"
 volumes:
   chatbot_data:
     driver: local

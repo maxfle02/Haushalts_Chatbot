@@ -18,6 +18,7 @@ dotenv.load_dotenv()
 
 # Limit the number of documents to be loaded from the database
 DB_DOCS_LIMIT = 10
+CHROMA_DB = "../chroma_db"
 
 
 # Function to stream the response from the LLM
@@ -37,7 +38,7 @@ def stream_llm_response(llm_stream, messages):
 def load_doc_to_db():
     # Überprüfe, ob die `loaded_documents.txt` Datei existiert und lade die vorhandenen Namen
     try:
-        with open("../loaded_documents.txt", "r") as file:
+        with open("loaded_documents.txt", "r") as file:
             loaded_documents = {
                 line.strip() for line in file.readlines()
             }  # Verwende ein Set für schnellere Suche
@@ -98,7 +99,7 @@ def load_doc_to_db():
 
 
 def initialize_vector_db(docs=None):
-    persist_dir = "chroma_db"
+    persist_dir = CHROMA_DB
     embedding = OpenAIEmbeddings()
 
     # Prüfen, ob das Verzeichnis existiert
